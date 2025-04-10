@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>密碼管理器安全填充演示</title>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            flex: 1;
+        }
+
+        h1,
+        h2,
+        h3 {
+            color: #2c3e50;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        input,
+        button,
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            cursor: pointer;
+            border: none;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .password-manager {
+            border: 2px solid #3498db;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .logs {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .log-entry.error {
+            color: #e74c3c;
+        }
+
+        .log-entry.warning {
+            color: #f39c12;
+        }
+
+        .log-entry.success {
+            color: #27ae60;
+        }
+
+        .tab-container {
+            margin-bottom: 20px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            margin-bottom: 10px;
+        }
+
+        .tab-button {
+            padding: 10px 20px;
+            background-color: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px 4px 0 0;
+            margin-right: 5px;
+        }
+
+        .tab-button.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            background-color: white;
+            padding: 20px;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .status-indicator {
+            padding: 8px;
+            border-radius: 4px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status-safe {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-vulnerable {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .invisible-iframe {
+            border: 0;
+            height: 0;
+            width: 0;
+            position: absolute;
+            visibility: hidden;
+        }
+
+        .attack-demo {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .attack-button {
+            background-color: #e74c3c;
+        }
+
+        .attack-button:hover {
+            background-color: #c0392b;
+        }
+
+        code {
+            background-color: #f8f8f8;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .credentials-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .credentials-table th,
+        .credentials-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .credentials-table th {
+            background-color: #f2f2f2;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #2196F3;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(26px);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>密碼管理器安全填充演示</h1>
+    <p>本演示展示了論文《Password Managers: Attacks and Defenses》中提出的安全填充概念，以及如何防禦針對密碼管理器的攻擊。</p>
+
+    <div class="tab-container">
+        <div class="tab-buttons">
+            <button class="tab-button active" onclick="openTab('setup-tab')">1. 設置憑證</button>
+            <button class="tab-button" onclick="openTab('standard-tab')">2. 標準自動填充</button>
+            <button class="tab-button" onclick="openTab('secure-tab')">3. 安全填充</button>
+            <button class="tab-button" onclick="openTab('attack-tab')">4. 攻擊演示</button>
+        </div>
+
+        <!-- 設置標籤 -->
+        <div id="setup-tab" class="tab-content active">
+            <h2>設置您的憑證</h2>
+            <p>這一步模擬密碼管理器儲存您的登入憑證。在實際應用中，密碼管理器會在您首次登入網站時自動保存這些資訊。</p>
+
+            <form id="credentials-form">
+                <div>
+                    <label for="website">網站域名：</label>
+                    <input type="text" id="website" value="example.com" required>
+                </div>
+                <div>
+                    <label for="username">使用者名稱：</label>
+                    <input type="text" id="username" value="user123" required>
+                </div>
+                <div>
+                    <label for="password">密碼：</label>
+                    <input type="password" id="password" value="SecurePassword123!" required>
+                </div>
+                <div>
+                    <label for="formAction">原始表單提交目標：</label>
+                    <input type="text" id="formAction" value="https://example.com/login" required>
+                </div>
+                <button type="button" onclick="saveCredentials()">保存憑證</button>
+            </form>
+
+            <h3>已保存的憑證</h3>
+            <div class="logs" id="credentials-log">
+                <p class="log-entry">尚未保存任何憑證</p>
+            </div>
+
+            <div class="panel">
+                <h3>說明</h3>
+                <p>在此步驟中，您設置模擬密碼管理器中儲存的登入憑證。這些資訊將用於後續的自動填充演示。</p>
+                <p>請注意：在實際密碼管理器中，這些資訊會被加密儲存，並在需要時自動填充。</p>
+            </div>
+        </div>
+
+        <!-- 標準自動填充標籤 -->
+        <div id="standard-tab" class="tab-content">
+            <h2>標準自動填充</h2>
+            <p>這個演示展示了傳統密碼管理器如何執行自動填充，以及為什麼這種方法可能存在安全風險。</p>
+
+            <div class="container">
+                <div class="panel">
+                    <h3>模擬登入表單</h3>
+                    <form id="standard-login-form">
+                        <div>
+                            <label for="standard-username">使用者名稱：</label>
+                            <input type="text" id="standard-username">
+                        </div>
+                        <div>
+                            <label for="standard-password">密碼：</label>
+                            <input type="password" id="standard-password">
+                        </div>
+                        <div>
+                            <label for="standard-action">表單提交目標：</label>
+                            <input type="text" id="standard-action" value="https://example.com/login">
+                        </div>
+                        <button type="button" onclick="standardAutofill()">自動填充</button>
+                        <button type="button" onclick="standardSubmit()">提交表單</button>
+                    </form>
+
+                    <div class="status-indicator" id="standard-status">
+                        等待自動填充...
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>標準自動填充原理</h3>
+                    <p>在標準自動填充中，當用戶觸發自動填充時，密碼管理器直接將儲存的使用者名稱和密碼填入表單字段。</p>
+                    <p>問題：一旦密碼被填入表單，任何頁面上的JavaScript都可以讀取密碼值或修改表單提交目標。</p>
+                    <h4>漏洞展示：</h4>
+                    <button type="button" onclick="standardPasswordPeek()">使用JavaScript讀取密碼</button>
+                    <button type="button" onclick="changeStandardAction()">修改表單提交目標</button>
+
+                    <h3>操作日誌</h3>
+                    <div class="logs" id="standard-log">
+                        <p class="log-entry">等待操作...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 安全填充標籤 -->
+        <div id="secure-tab" class="tab-content">
+            <h2>安全填充</h2>
+            <p>這個演示展示了論文中提出的"安全填充"概念，以及它如何保護您的密碼免受JavaScript攻擊。</p>
+
+            <div class="container">
+                <div class="panel">
+                    <h3>模擬登入表單</h3>
+                    <form id="secure-login-form">
+                        <div>
+                            <label for="secure-username">使用者名稱：</label>
+                            <input type="text" id="secure-username">
+                        </div>
+                        <div>
+                            <label for="secure-password">密碼：</label>
+                            <input type="password" id="secure-password">
+                        </div>
+                        <div>
+                            <label for="secure-action">表單提交目標：</label>
+                            <input type="text" id="secure-action" value="https://example.com/login">
+                        </div>
+                        <button type="button" onclick="secureAutofill()">安全填充</button>
+                        <button type="button" onclick="secureSubmit()">提交表單</button>
+                    </form>
+
+                    <div class="status-indicator" id="secure-status">
+                        等待安全填充...
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>安全填充原理</h3>
+                    <p>在安全填充中：</p>
+                    <ol>
+                        <li>密碼欄位填入一個特殊的佔位符，而非實際密碼</li>
+                        <li>JavaScript無法讀取實際密碼值</li>
+                        <li>表單提交前檢查目標URL是否與原始儲存的URL相符</li>
+                        <li>僅在驗證安全後才將實際密碼填入表單</li>
+                    </ol>
+
+                    <h4>安全檢測：</h4>
+                    <button type="button" onclick="securePasswordPeek()">嘗試使用JavaScript讀取密碼</button>
+                    <button type="button" onclick="changeSecureAction()">修改表單提交目標</button>
+
+                    <h3>操作日誌</h3>
+                    <div class="logs" id="secure-log">
+                        <p class="log-entry">等待操作...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 攻擊演示標籤 -->
+        <div id="attack-tab" class="tab-content">
+            <h2>攻擊演示</h2>
+            <p>這個演示展示了論文中描述的攻擊，以及安全填充如何保護您的密碼免受這些攻擊。</p>
+
+            <div class="container">
+                <div class="panel">
+                    <h3>攻擊場景設置</h3>
+                    <div class="toggle-container">
+                        <label for="secure-mode" class="toggle-switch">
+                            <input type="checkbox" id="secure-mode" checked>
+                            <span class="slider"></span>
+                        </label>
+                        <span>使用安全填充模式</span>
+                    </div>
+
+                    <div class="attack-demo">
+                        <h4>iFrame掃描攻擊</h4>
+                        <p>攻擊者在惡意頁面中嵌入不可見的iFrame指向目標登入頁面，密碼管理器自動填充密碼，攻擊者使用JavaScript提取密碼。</p>
+                        <button type="button" class="attack-button" onclick="runIframeAttack()">模擬iFrame攻擊</button>
+
+                        <h4>表單操作攻擊</h4>
+                        <p>攻擊者修改表單的提交目標以竊取用戶的密碼。</p>
+                        <button type="button" class="attack-button" onclick="runFormActionAttack()">模擬表單目標攻擊</button>
+
+                        <h4>JavaScript讀取攻擊</h4>
+                        <p>攻擊者使用JavaScript直接從填充的欄位中讀取密碼。</p>
+                        <button type="button" class="attack-button"
+                            onclick="runJavaScriptAttack()">模擬JavaScript攻擊</button>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3>攻擊結果</h3>
+                    <div class="status-indicator" id="attack-status">
+                        等待攻擊演示...
+                    </div>
+
+                    <h4>竊取的憑證</h4>
+                    <table class="credentials-table" id="stolen-credentials">
+                        <thead>
+                            <tr>
+                                <th>網站</th>
+                                <th>使用者名稱</th>
+                                <th>密碼</th>
+                                <th>時間</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="4">尚未竊取任何憑證</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <h3>攻擊日誌</h3>
+                    <div class="logs" id="attack-log">
+                        <p class="log-entry">等待攻擊演示...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局變量
+        let savedCredentials = {};
+        let fillingInProgress = new Map();
+        let stolenCredentials = [];
+
+        // 切換標籤功能
+        function openTab(tabId) {
+            const tabContents = document.getElementsByClassName('tab-content');
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove('active');
+            }
+
+            const tabButtons = document.getElementsByClassName('tab-button');
+            for (let i = 0; i < tabButtons.length; i++) {
+                tabButtons[i].classList.remove('active');
+            }
+
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // 保存憑證功能
+        function saveCredentials() {
+            const website = document.getElementById('website').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const formAction = document.getElementById('formAction').value;
+
+            if (!website || !username || !password || !formAction) {
+                addLog('credentials-log', '請填寫所有必填字段', 'error');
+                return;
+            }
+
+            try {
+                const url = new URL(formAction);
+                savedCredentials[website] = {
+                    username,
+                    password,
+                    originalAction: url.hostname
+                };
+
+                addLog('credentials-log', `已保存 ${website} 的憑證：用戶名 ${username}，原始表單目標 ${url.hostname}`, 'success');
+                updateCredentialsDisplay();
+            } catch (e) {
+                addLog('credentials-log', `表單提交目標URL無效: ${e.message}`, 'error');
+            }
+        }
+
+        // 更新憑證顯示
+        function updateCredentialsDisplay() {
+            const logElement = document.getElementById('credentials-log');
+            logElement.innerHTML = '';
+
+            if (Object.keys(savedCredentials).length === 0) {
+                addLog('credentials-log', '尚未保存任何憑證');
+                return;
+            }
+
+            for (const website in savedCredentials) {
+                const cred = savedCredentials[website];
+                addLog('credentials-log', `網站: ${website} | 用戶名: ${cred.username} | 原始目標: ${cred.originalAction}`);
+            }
+        }
+
+        // 標準自動填充
+        function standardAutofill() {
+            const currentWebsite = document.getElementById('website').value;
+
+            if (!savedCredentials[currentWebsite]) {
+                addLog('standard-log', `找不到 ${currentWebsite} 的憑證`, 'error');
+                document.getElementById('standard-status').textContent = '自動填充失敗：找不到憑證';
+                document.getElementById('standard-status').className = 'status-indicator status-vulnerable';
+                return;
+            }
+
+            const usernameField = document.getElementById('standard-username');
+            const passwordField = document.getElementById('standard-password');
+
+            // 直接填充用戶名和密碼
+            usernameField.value = savedCredentials[currentWebsite].username;
+            passwordField.value = savedCredentials[currentWebsite].password;
+
+            document.getElementById('standard-status').textContent = '密碼已自動填充 - 但JavaScript可以讀取密碼！';
+            document.getElementById('standard-status').className = 'status-indicator status-vulnerable';
+
+            addLog('standard-log', `已為 ${currentWebsite} 填充憑證`, 'success');
+            addLog('standard-log', '警告：任何頁面JavaScript都可以讀取或攔截密碼', 'warning');
+        }
+
+        // 安全填充
+        function secureAutofill() {
+            const currentWebsite = document.getElementById('website').value;
+
+            if (!savedCredentials[currentWebsite]) {
+                addLog('secure-log', `找不到 ${currentWebsite} 的憑證`, 'error');
+                document.getElementById('secure-status').textContent = '安全填充失敗：找不到憑證';
+                document.getElementById('secure-status').className = 'status-indicator status-vulnerable';
+                return;
+            }
+
+            const form = document.getElementById('secure-login-form');
+            const usernameField = document.getElementById('secure-username');
+            const passwordField = document.getElementById('secure-password');
+
+            // 填充用戶名
+            usernameField.value = savedCredentials[currentWebsite].username;
+
+            // 使用佔位符填充密碼
+            const dummyPassword = Array(16).fill('\uFEFF').join(''); // 使用零寬不換行空格作為佔位符
+            passwordField.value = dummyPassword;
+
+            // 保存填充狀態
+            fillingInProgress.set(form, {
+                website: currentWebsite,
+                realPassword: savedCredentials[currentWebsite].password,
+                originalAction: savedCredentials[currentWebsite].originalAction,
+                dummyPassword: dummyPassword
+            });
+
+            document.getElementById('secure-status').textContent = '密碼已安全填充 - JavaScript無法讀取實際密碼';
+            document.getElementById('secure-status').className = 'status-indicator status-safe';
+
+            addLog('secure-log', `已為 ${currentWebsite} 安全填充憑證`, 'success');
+            addLog('secure-log', '密碼欄位包含佔位符，實際密碼仍處於保護狀態', 'success');
+        }
+
+        // 標準表單提交
+        function standardSubmit() {
+            const form = document.getElementById('standard-login-form');
+            const actionURL = document.getElementById('standard-action').value;
+
+            try {
+                const url = new URL(actionURL);
+                const currentWebsite = document.getElementById('website').value;
+
+                if (!savedCredentials[currentWebsite]) {
+                    addLog('standard-log', '無法提交：尚未填充憑證', 'error');
+                    return;
+                }
+
+                // 檢查目標是否已更改
+                if (url.hostname !== savedCredentials[currentWebsite].originalAction) {
+                    addLog('standard-log', `警告：表單目標已更改（${savedCredentials[currentWebsite].originalAction} -> ${url.hostname}）`, 'warning');
+                    addLog('standard-log', '標準自動填充不會檢查目標變更，將會提交到新目標', 'warning');
+                }
+
+                addLog('standard-log', `提交表單到 ${url.hostname}`, 'success');
+                addLog('standard-log', `已將密碼 "${document.getElementById('standard-password').value}" 提交到 ${url.hostname}`, 'success');
+
+                // 模擬成功提交
+                setTimeout(() => {
+                    alert(`標準模式：表單已提交到 ${url.hostname}`);
+                }, 500);
+            } catch (e) {
+                addLog('standard-log', `表單提交目標URL無效: ${e.message}`, 'error');
+            }
+        }
+
+        // 安全表單提交
+        function secureSubmit() {
+            const form = document.getElementById('secure-login-form');
+            const actionURL = document.getElementById('secure-action').value;
+
+            if (!fillingInProgress.has(form)) {
+                addLog('secure-log', '無法提交：尚未進行安全填充', 'error');
+                return;
+            }
+
+            try {
+                const url = new URL(actionURL);
+                const fillData = fillingInProgress.get(form);
+
+                // 檢查目標是否已更改
+                if (url.hostname !== fillData.originalAction) {
+                    addLog('secure-log', `警告：表單目標已更改（${fillData.originalAction} -> ${url.hostname}）`, 'warning');
+
+                    // 在實際的安全填充中，此處會顯示一個確認對話框
+                    const confirmSubmit = confirm(`檢測到表單提交目標變更！\n原始目標: ${fillData.originalAction}\n新目標: ${url.hostname}\n\n仍要提交嗎？`);
+
+                    if (!confirmSubmit) {
+                        addLog('secure-log', '提交已取消', 'warning');
+                        return;
+                    }
+
+                    addLog('secure-log', '用戶確認提交到變更後的目標', 'warning');
+                }
+
+                // 在提交前將真實密碼填入表單（在真實實現中會直接提交表單）
+                addLog('secure-log', `在提交前替換佔位符為實際密碼`, 'success');
+
+                // 模擬成功提交
+                setTimeout(() => {
+                    alert(`安全模式：表單已安全提交到 ${url.hostname}`);
+                    fillingInProgress.delete(form);
+                }, 500);
+            } catch (e) {
+                addLog('secure-log', `表單提交目標URL無效: ${e.message}`, 'error');
+            }
+        }
+
+        // 嘗試使用JavaScript讀取標準填充的密碼
+        function standardPasswordPeek() {
+            const passwordField = document.getElementById('standard-password');
+            if (passwordField.value) {
+                addLog('standard-log', `JavaScript能夠成功讀取密碼: "${passwordField.value}"`, 'error');
+            } else {
+                addLog('standard-log', '密碼字段為空，無法讀取', 'warning');
+            }
+        }
+
+        // 嘗試使用JavaScript讀取安全填充的密碼
+        function securePasswordPeek() {
+            const passwordField = document.getElementById('secure-password');
+            const form = document.getElementById('secure-login-form');
+
+            if (!fillingInProgress.has(form)) {
+                addLog('secure-log', '尚未進行安全填充，密碼字段為空', 'warning');
+                return;
+            }
+
+            const fillData = fillingInProgress.get(form);
+            if (passwordField.value === fillData.dummyPassword) {
+                addLog('secure-log', `JavaScript只能讀取佔位符，無法取得實際密碼`, 'success');
+            } else if (!passwordField.value) {
+                addLog('secure-log', '密碼字段為空，無法讀取', 'warning');
+            } else {
+                addLog('secure-log', `JavaScript能夠讀取密碼: "${passwordField.value}"`, 'error');
+            }
+        }
+
+        // 修改標準表單提交目標
+        function changeStandardAction() {
+            const actionField = document.getElementById('standard-action');
+            actionField.value = 'https://evil-attacker.com/steal';
+            addLog('standard-log', '已將表單提交目標修改為 https://evil-attacker.com/steal', 'warning');
+        }
+
+        // 修改安全表單提交目標
+        function changeSecureAction() {
+            const actionField = document.getElementById('secure-action');
+            actionField.value = 'https://evil-attacker.com/steal';
+            addLog('secure-log', '已將表單提交目標修改為 https://evil-attacker.com/steal', 'warning');
+            addLog('secure-log', '安全填充將在提交前檢測到此變更，並要求用戶確認', 'success');
+        }
+
+        // iFrame攻擊演示
+        function runIframeAttack() {
+            const isSecureMode = document.getElementById('secure-mode').checked;
+            const attackLog = document.getElementById('attack-log');
+            const attackStatus = document.getElementById('attack-status');
+
+            attackLog.innerHTML = '';
+            addLog('attack-log', `開始模擬iFrame掃描攻擊，${isSecureMode ? '使用' : '不使用'}安全填充...`);
+
+            // 創建攻擊的iFrame（在真實攻擊中，這些iFrame是不可見的）
+            const iframe = document.createElement('iframe');
+            iframe.className = 'invisible-iframe';
+            iframe.src = 'about:blank';
+            document.body.appendChild(iframe);
+
+            // 設置iFrame內容
+            setTimeout(() => {
+                try {
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.body.innerHTML = `
+                        <form id="login-form">
+                            <input type="text" id="username">
+                            <input type="password" id="password">
+                            <button type="submit">登入</button>
+                        </form>
+                    `;
+
+                    addLog('attack-log', '已創建模擬登入表單iFrame');
+
+                    // 根據模式執行不同的填充
+                    if (isSecureMode) {
+                        // 安全填充模式
+                        addLog('attack-log', '使用安全填充模式 - 提供佔位符密碼');
+
+                        // 僅填充用戶名，使用佔位符填充密碼
+                        const currentWebsite = document.getElementById('website').value;
+                        const usernameField = iframeDoc.getElementById('username');
+                        const passwordField = iframeDoc.getElementById('password');
+
+                        if (savedCredentials[currentWebsite]) {
+                            usernameField.value = savedCredentials[currentWebsite].username;
+
+                            // 使用佔位符填充密碼
+                            const dummyPassword = Array(16).fill('\uFEFF').join('');
+                            passwordField.value = dummyPassword;
+
+                            addLog('attack-log', '安全填充已保護密碼免於JavaScript讀取');
+
+                            // 嘗試讀取密碼（將失敗）
+                            setTimeout(() => {
+                                try {
+                                    const extractedPassword = passwordField.value;
+                                    addLog('attack-log', `攻擊者嘗試讀取密碼，獲得：${extractedPassword === dummyPassword ? "佔位符，非實際密碼" : extractedPassword}`);
+
+                                    attackStatus.textContent = '攻擊失敗 - 安全填充保護了密碼';
+                                    attackStatus.className = 'status-indicator status-safe';
+                                } catch (e) {
+                                    addLog('attack-log', `讀取密碼時出錯：${e.message}`, 'error');
+                                }
+
+                                // 清理iFrame
+                                document.body.removeChild(iframe);
+                            }, 1000);
+                        } else {
+                            addLog('attack-log', '找不到憑證，無法進行填充', 'warning');
+                            document.body.removeChild(iframe);
+                        }
+                    } else {
+                        // 標準填充模式 - 直接填充密碼
+                        addLog('attack-log', '使用標準填充模式 - 直接填充實際密碼');
+
+                        const currentWebsite = document.getElementById('website').value;
+                        const usernameField = iframeDoc.getElementById('username');
+                        const passwordField = iframeDoc.getElementById('password');
+
+                        if (savedCredentials[currentWebsite]) {
+                            usernameField.value = savedCredentials[currentWebsite].username;
+                            passwordField.value = savedCredentials[currentWebsite].password;
+
+                            addLog('attack-log', '標準填充已完成，JavaScript可以讀取密碼');
+
+                            // 攻擊者讀取密碼
+                            setTimeout(() => {
+                                try {
+                                    const extractedUsername = usernameField.value;
+                                    const extractedPassword = passwordField.value;
+
+                                    // 儲存竊取的憑證
+                                    stolenCredentials.push({
+                                        website: currentWebsite,
+                                        username: extractedUsername,
+                                        password: extractedPassword,
+                                        time: new Date().toLocaleTimeString()
+                                    });
+
+                                    updateStolenCredentialsTable();
+
+                                    addLog('attack-log', `攻擊成功！已竊取憑證 - 用戶名：${extractedUsername}，密碼：${extractedPassword}`, 'error');
+
+                                    attackStatus.textContent = '攻擊成功 - 密碼已被竊取！';
+                                    attackStatus.className = 'status-indicator status-vulnerable';
+                                } catch (e) {
+                                    addLog('attack-log', `讀取密碼時出錯：${e.message}`, 'error');
+                                }
+
+                                // 清理iFrame
+                                document.body.removeChild(iframe);
+                            }, 1000);
+                        } else {
+                            addLog('attack-log', '找不到憑證，無法進行填充', 'warning');
+                            document.body.removeChild(iframe);
+                        }
+                    }
+                } catch (e) {
+                    addLog('attack-log', `iFrame操作時出錯：${e.message}`, 'error');
+                    document.body.removeChild(iframe);
+                }
+            }, 500);
+        }
+
+        // 表單操作攻擊演示
+        function runFormActionAttack() {
+            const isSecureMode = document.getElementById('secure-mode').checked;
+            const attackLog = document.getElementById('attack-log');
+            const attackStatus = document.getElementById('attack-status');
+
+            attackLog.innerHTML = '';
+            addLog('attack-log', `開始模擬表單操作攻擊，${isSecureMode ? '使用' : '不使用'}安全填充...`);
+
+            // 創建模擬登入表單
+            const formContainer = document.createElement('div');
+            formContainer.style.display = 'none';
+            formContainer.innerHTML = `
+                <form id="attack-form">
+                    <input type="text" id="attack-username">
+                    <input type="password" id="attack-password">
+                    <input type="hidden" id="original-action" value="https://example.com/login">
+                    <button type="button" id="attack-submit">登入</button>
+                </form>
+            `;
+            document.body.appendChild(formContainer);
+
+            const form = document.getElementById('attack-form');
+            const usernameField = document.getElementById('attack-username');
+            const passwordField = document.getElementById('attack-password');
+
+            const currentWebsite = document.getElementById('website').value;
+
+            if (!savedCredentials[currentWebsite]) {
+                addLog('attack-log', '找不到憑證，無法進行填充', 'warning');
+                document.body.removeChild(formContainer);
+                return;
+            }
+
+            // 根據模式執行不同的填充
+            if (isSecureMode) {
+                // 安全填充模式
+                addLog('attack-log', '使用安全填充模式 - 追蹤表單原始目標');
+
+                usernameField.value = savedCredentials[currentWebsite].username;
+
+                // 使用佔位符填充密碼
+                const dummyPassword = Array(16).fill('\uFEFF').join('');
+                passwordField.value = dummyPassword;
+
+                // 保存填充狀態
+                fillingInProgress.set(form, {
+                    website: currentWebsite,
+                    realPassword: savedCredentials[currentWebsite].password,
+                    originalAction: savedCredentials[currentWebsite].originalAction,
+                    dummyPassword: dummyPassword
+                });
+
+                addLog('attack-log', '安全填充已完成，原始表單目標已記錄');
+
+                // 攻擊者修改表單目標
+                setTimeout(() => {
+                    document.getElementById('original-action').value = 'https://evil-attacker.com/steal';
+                    addLog('attack-log', '攻擊者已修改表單提交目標為 https://evil-attacker.com/steal');
+
+                    // 嘗試提交表單（將被阻止）
+                    setTimeout(() => {
+                        // 模擬表單提交前的檢查
+                        const fillData = fillingInProgress.get(form);
+                        const newAction = document.getElementById('original-action').value;
+
+                        try {
+                            const url = new URL(newAction);
+
+                            if (url.hostname !== fillData.originalAction) {
+                                addLog('attack-log', `安全填充檢測到表單目標變更（${fillData.originalAction} -> ${url.hostname}）`, 'success');
+                                addLog('attack-log', '攻擊被阻止，需要用戶確認才能提交到修改後的目標', 'success');
+
+                                attackStatus.textContent = '攻擊失敗 - 安全填充檢測到表單目標變更';
+                                attackStatus.className = 'status-indicator status-safe';
+                            }
+                        } catch (e) {
+                            addLog('attack-log', `表單提交目標URL無效: ${e.message}`, 'error');
+                        }
+
+                        // 清理表單
+                        document.body.removeChild(formContainer);
+                        fillingInProgress.delete(form);
+                    }, 1000);
+                }, 1000);
+            } else {
+                // 標準填充模式
+                addLog('attack-log', '使用標準填充模式 - 不追蹤表單原始目標');
+
+                usernameField.value = savedCredentials[currentWebsite].username;
+                passwordField.value = savedCredentials[currentWebsite].password;
+
+                addLog('attack-log', '標準填充已完成');
+
+                // 攻擊者修改表單目標
+                setTimeout(() => {
+                    document.getElementById('original-action').value = 'https://evil-attacker.com/steal';
+                    addLog('attack-log', '攻擊者已修改表單提交目標為 https://evil-attacker.com/steal');
+
+                    // 模擬表單提交（將成功）
+                    setTimeout(() => {
+                        const newAction = document.getElementById('original-action').value;
+
+                        try {
+                            const url = new URL(newAction);
+
+                            addLog('attack-log', `標準填充不檢查目標變更，表單將正常提交到 ${url.hostname}`, 'error');
+
+                            // 儲存竊取的憑證
+                            stolenCredentials.push({
+                                website: currentWebsite,
+                                username: usernameField.value,
+                                password: passwordField.value,
+                                time: new Date().toLocaleTimeString()
+                            });
+
+                            updateStolenCredentialsTable();
+
+                            addLog('attack-log', `攻擊成功！密碼已被提交到攻擊者控制的網站`, 'error');
+
+                            attackStatus.textContent = '攻擊成功 - 密碼已被竊取！';
+                            attackStatus.className = 'status-indicator status-vulnerable';
+                        } catch (e) {
+                            addLog('attack-log', `表單提交目標URL無效: ${e.message}`, 'error');
+                        }
+
+                        // 清理表單
+                        document.body.removeChild(formContainer);
+                    }, 1000);
+                }, 1000);
+            }
+        }
+
+        // JavaScript讀取攻擊演示
+        function runJavaScriptAttack() {
+            const isSecureMode = document.getElementById('secure-mode').checked;
+            const attackLog = document.getElementById('attack-log');
+            const attackStatus = document.getElementById('attack-status');
+
+            attackLog.innerHTML = '';
+            addLog('attack-log', `開始模擬JavaScript讀取攻擊，${isSecureMode ? '使用' : '不使用'}安全填充...`);
+
+            // 創建模擬登入表單
+            const formContainer = document.createElement('div');
+            formContainer.style.display = 'none';
+            formContainer.innerHTML = `
+                <form id="js-attack-form">
+                    <input type="text" id="js-attack-username">
+                    <input type="password" id="js-attack-password">
+                    <button type="button">登入</button>
+                </form>
+            `;
+            document.body.appendChild(formContainer);
+
+            const form = document.getElementById('js-attack-form');
+            const usernameField = document.getElementById('js-attack-username');
+            const passwordField = document.getElementById('js-attack-password');
+
+            const currentWebsite = document.getElementById('website').value;
+
+            if (!savedCredentials[currentWebsite]) {
+                addLog('attack-log', '找不到憑證，無法進行填充', 'warning');
+                document.body.removeChild(formContainer);
+                return;
+            }
+
+            // 根據模式執行不同的填充
+            if (isSecureMode) {
+                // 安全填充模式
+                addLog('attack-log', '使用安全填充模式 - 使用佔位符');
+
+                usernameField.value = savedCredentials[currentWebsite].username;
+
+                // 使用佔位符填充密碼
+                const dummyPassword = Array(16).fill('\uFEFF').join('');
+                passwordField.value = dummyPassword;
+
+                // 保存填充狀態
+                fillingInProgress.set(form, {
+                    website: currentWebsite,
+                    realPassword: savedCredentials[currentWebsite].password,
+                    originalAction: savedCredentials[currentWebsite].originalAction,
+                    dummyPassword: dummyPassword
+                });
+
+                addLog('attack-log', '安全填充已完成，密碼已被佔位符保護');
+
+                // 攻擊者嘗試讀取密碼
+                setTimeout(() => {
+                    try {
+                        // 讀取密碼字段值
+                        const extractedPassword = passwordField.value;
+
+                        if (extractedPassword === dummyPassword) {
+                            addLog('attack-log', '攻擊者只能讀取到佔位符，無法獲取實際密碼', 'success');
+
+                            attackStatus.textContent = '攻擊失敗 - 安全填充保護了密碼';
+                            attackStatus.className = 'status-indicator status-safe';
+                        } else {
+                            addLog('attack-log', `攻擊者讀取到密碼: ${extractedPassword}`, 'error');
+
+                            // 儲存竊取的憑證
+                            stolenCredentials.push({
+                                website: currentWebsite,
+                                username: usernameField.value,
+                                password: extractedPassword,
+                                time: new Date().toLocaleTimeString()
+                            });
+
+                            updateStolenCredentialsTable();
+
+                            attackStatus.textContent = '攻擊成功 - 密碼已被竊取！';
+                            attackStatus.className = 'status-indicator status-vulnerable';
+                        }
+                    } catch (e) {
+                        addLog('attack-log', `讀取密碼時出錯：${e.message}`, 'error');
+                    }
+
+                    // 清理表單
+                    document.body.removeChild(formContainer);
+                    fillingInProgress.delete(form);
+                }, 1000);
+            } else {
+                // 標準填充模式
+                addLog('attack-log', '使用標準填充模式 - 直接填充密碼');
+
+                usernameField.value = savedCredentials[currentWebsite].username;
+                passwordField.value = savedCredentials[currentWebsite].password;
+
+                addLog('attack-log', '標準填充已完成，JavaScript可以直接讀取密碼');
+
+                // 攻擊者讀取密碼
+                setTimeout(() => {
+                    try {
+                        // 讀取密碼字段值
+                        const extractedUsername = usernameField.value;
+                        const extractedPassword = passwordField.value;
+
+                        // 儲存竊取的憑證
+                        stolenCredentials.push({
+                            website: currentWebsite,
+                            username: extractedUsername,
+                            password: extractedPassword,
+                            time: new Date().toLocaleTimeString()
+                        });
+
+                        updateStolenCredentialsTable();
+
+                        addLog('attack-log', `攻擊成功！已竊取密碼: ${extractedPassword}`, 'error');
+
+                        attackStatus.textContent = '攻擊成功 - 密碼已被竊取！';
+                        attackStatus.className = 'status-indicator status-vulnerable';
+                    } catch (e) {
+                        addLog('attack-log', `讀取密碼時出錯：${e.message}`, 'error');
+                    }
+
+                    // 清理表單
+                    document.body.removeChild(formContainer);
+                }, 1000);
+            }
+        }
+
+        // 更新竊取的憑證表格
+        function updateStolenCredentialsTable() {
+            const table = document.getElementById('stolen-credentials');
+            const tbody = table.querySelector('tbody');
+            tbody.innerHTML = '';
+
+            if (stolenCredentials.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="4">尚未竊取任何憑證</td>';
+                tbody.appendChild(row);
+                return;
+            }
+
+            for (const cred of stolenCredentials) {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${cred.website}</td>
+                    <td>${cred.username}</td>
+                    <td>${cred.password}</td>
+                    <td>${cred.time}</td>
+                `;
+                tbody.appendChild(row);
+            }
+        }
+
+        // 日誌功能
+        function addLog(logElementId, message, type = '') {
+            const logElement = document.getElementById(logElementId);
+            const logEntry = document.createElement('p');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = message;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function () {
+            updateCredentialsDisplay();
+            updateStolenCredentialsTable();
+        });
+    </script>
+</body>
+
+</html>
